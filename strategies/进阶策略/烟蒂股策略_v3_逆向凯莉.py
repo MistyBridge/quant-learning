@@ -9,6 +9,10 @@
       - 最低仓位：永不低于 min_position(默认 50%)。
     候选内为**等权**(每只 = exposure/top_n),与 v1 的唯一区别就是"仓位随最近低点逆向调整"。
 
+【应用时点】只在**原始策略卖出某股、下一次买入新标的**时,用当前逆向凯莉比例建仓;
+    已持有且仍属目标的仓位**不做每月强平衡**(不额外产生减仓/加仓单),
+    因此买卖笔数与盈亏次数应与 v1 一致——只是仓位大小不同。
+
 【A/B】v1 等权满仓 / v2 正向凯莉 / v3 逆向凯莉 —— 三者选股完全相同,只差仓位管理。
 
 【注意】"越跌越加仓"属逆向抄底,可能在下跌中放大暴露(放大回撤),请结合自身风险偏好；本策略为学习/研究用途，不构成投资建议。
@@ -203,11 +207,14 @@ def manage_holdings(context, target, exposure):
     codes = target['code'].tolist()
     if not codes:
         return
-    weight = exposure / len(codes)   # 等权 × 暴露；其余留现金
+    weight = exposure / len(codes)   # 逆向凯莉权重：仅用于「新买入」
     for stock in codes:
+        if stock in context.portfolio.positions:   # 已持有且仍为目标 -> 不动（不每月强平衡）
+            continue
         cur = cd[stock]
         if cur.paused or cur.is_st:
             continue
+        # 只在原始策略卖出后、新买入该标的时才用凯莉比例建仓
         order_target_value(stock, context.portfolio.total_value * weight)
 
 
