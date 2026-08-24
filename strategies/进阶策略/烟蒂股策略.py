@@ -133,7 +133,7 @@ def query_fundamentals(universe, prev_date):
         q = query(
             valuation.code,
             balance.total_current_assets,     # 流动资产合计
-            balance.total_liabilities,         # 负债合计（含长期，保守口径）
+            balance.total_liability,         # 负债合计（含长期，保守口径）
             valuation.market_cap,              # 总市值（亿元）
             valuation.circulating_market_cap,  # 流通市值（亿元）
         ).filter(valuation.code.in_(chunk))
@@ -154,12 +154,12 @@ def compute_candidates(fund, context, date, prev_date):
 
     df = fund.copy()
     # 缺失关键数据剔除
-    df = df.dropna(subset=['total_current_assets', 'total_liabilities', 'market_cap'])
+    df = df.dropna(subset=['total_current_assets', 'total_liability', 'market_cap'])
     df = df[df['total_current_assets'] > 0]
-    df = df[df['total_liabilities'] > 0]
+    df = df[df['total_liability'] > 0]
 
     # NCAV = 流动资产合计 - 总负债（保守口径）
-    df['ncav'] = df['total_current_assets'] - df['total_liabilities']
+    df['ncav'] = df['total_current_assets'] - df['total_liability']
     df = df[df['ncav'] > 0]
 
     # 市值（亿元）换算为元，计算 P/NCAV
@@ -284,7 +284,7 @@ def current_ratio(code, date):
     q = query(
         valuation.code,
         balance.total_current_assets,
-        balance.total_liabilities,
+        balance.total_liability,
         valuation.market_cap,
     ).filter(valuation.code == code)
     df = get_fundamentals(q, date=date)
@@ -292,7 +292,7 @@ def current_ratio(code, date):
         return None
     row = df.iloc[0]
     tca = row['total_current_assets']
-    tl = row['total_liabilities']
+    tl = row['total_liability']
     mcap = row['market_cap']
     if pd.isnull(tca) or pd.isnull(tl) or pd.isnull(mcap):
         return None
