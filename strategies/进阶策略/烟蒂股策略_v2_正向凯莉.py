@@ -1,25 +1,22 @@
 # -*- coding: utf-8 -*-
 """
-烟蒂股策略 · 等权满仓版（v2）—— 聚宽平台
+烟蒂股策略 v2 · 正向凯莉 —— 聚宽平台
 
-【说明】这是"小市值 + 高股息可持续"代理口径的**等权满仓**版本（无凯莉、无动态降仓）。
-    与 v1（同口径、函数组织略有不同）对照；用于同区间 A/B 对比：
-      - v1：等权满仓（拆成 sell_holdings/buy_holdings + g.payout_min）
-      - v2：等权满仓（用 manage_holdings 合并买卖）
-    两者逻辑等价，仅代码组织方式不同。
+【与 v1 的差异】选股口径与 v1(原版/等权满仓)完全一致,只把"总仓位"改为**正向分级凯莉**:
+    用组合近 kelly_window 日收益的年化均值/波动算 Kelly,取 kelly_mult×max(0,Kelly),
+    映射到**权益暴露**(介于 min_exposure~max_exposure);行情好接近满仓,转弱自动降仓留现金。
+    候选内为**等权**(每只 = exposure/top_n),与 v1 的唯一区别就是"总仓位暴露"。
 
-【选股口径】
-    全市场 -> 剔除 ST/*ST/退市、科创板(688)、北交所(4/8/920)、次新(<365天)、停牌
-    -> 取市值最小 pool_size 只 -> 近一年分红/市值 -> 剔除支付率异常、市净率<=0
-    -> 股息率降序取 top_n -> **等权、满仓**。
+【A/B】v1 等权满仓 / v2 正向凯莉 / v3 逆向凯莉 —— 三者选股完全相同,只差仓位管理。
 
-【使用】复制到聚宽在线编辑器回测。
-【注意】本策略为量化学习/研究用途，不构成投资建议。
+【注意】本策略为量化学习/研究用途,不构成投资建议。
 """
 
 from jqdata import *
 import pandas as pd
+import numpy as np
 import datetime
+import collections
 
 
 def initialize(context):
@@ -33,17 +30,48 @@ def initialize(context):
     ), type='stock')
     set_slippage(PriceRelatedSlippage(0.00246))
 
+    # ---- 与 v1 相同的选股参数 ----
     g.pool_size = 1000        # 市值最小的 N 只（候选池）
-    g.top_n = 10              # 持有数量（等权、满仓）
+    g.top_n = 10              # 持有数量（股息率降序）
     g.min_hold = 5            # 严格候选低于此数时放宽支付率上限兜底
-    g.payout_max = 1.0        # 支付率上限（分红<=净利润，可持续）
     g.payout_relax_max = 2.0  # 兜底时支付率上限
-    g.max_div_yield = 0.40    # 股息率上限（避免特别分红/股价崩塌）
+    g.max_div_yield = 0.40    # 股息率上限
     g.min_circ_mcap = 1.0     # 最小流通市值（亿元）
+    g.payout_min = 0.0        # 股利支付率下限
+    g.payout_max = 1.0        # 股利支付率上限
     g.min_list_days = 365     # 次新剔除
     g.stop_loss = -0.20       # 相对成本止损
 
+    # ---- 正向凯莉 ----
+    g.kelly_mult = 0.5        # 分数凯莉（1/2 凯莉）
+    g.kelly_window = 60       # 回看交易日数
+    g.min_exposure = 0.5      # 权益暴露下限
+    g.max_exposure = 1.0      # 权益暴露上限
+    g.default_exposure = 1.0  # 数据不足时初始仓位
+    g.rf = 0.03               # 无风险利率
+
+    g.recent_pv = collections.deque(maxlen=g.kelly_window + 5)
+
+    run_daily(track_value, time='14:55')
     run_monthly(rebalance, monthday=1, time='09:31')
+
+
+def track_value(context):
+    g.recent_pv.append(context.portfolio.total_value)
+
+
+def kelly_exposure(context):
+    pv = list(g.recent_pv)
+    if len(pv) < 60:
+        return g.default_exposure
+    r = np.diff(pv) / np.asarray(pv[:-1], dtype=float)
+    mu = r.mean() * 250
+    sd = r.std() * np.sqrt(250)
+    if sd < 1e-6:
+        return g.max_exposure
+    kelly = (mu - g.rf) / (sd ** 2)
+    frac = g.kelly_mult * max(0.0, kelly)
+    return float(min(g.max_exposure, max(g.min_exposure, frac)))
 
 
 def rebalance(context):
@@ -59,10 +87,12 @@ def rebalance(context):
         target = screen_cigar_butt(pool, prev, date)
         if target is None or len(target) == 0:
             return
-        manage_holdings(context, target)
-        record(context, target)
+        exposure = kelly_exposure(context)
+        log.info('烟蒂股v2(正向凯莉)：仓位暴露 %.0f%%' % (exposure * 100))
+        manage_holdings(context, target, exposure)
+        record(context, target, exposure)
     except Exception as e:
-        log.error('烟蒂股：调仓异常 %s: %s' % (type(e).__name__, e))
+        log.error('烟蒂股v2：调仓异常 %s: %s' % (type(e).__name__, e))
 
 
 def get_universe(context, prev, date):
@@ -131,7 +161,7 @@ def screen_cigar_butt(pool, prev, date):
     df['payout_rate'] = df['cash_div'] / df['net_profit']
 
     df = df.dropna(subset=['div_yield', 'payout_rate', 'pb_ratio', 'market_cap'])
-    has_profit_pb = (df['payout_rate'] > 0) & (df['pb_ratio'] > 0)
+    has_profit_pb = (df['payout_rate'] > g.payout_min) & (df['pb_ratio'] > 0)
     if 'circulating_market_cap' in df.columns:
         has_profit_pb = has_profit_pb & (df['circulating_market_cap'] >= g.min_circ_mcap)
     has_sane_yield = df['div_yield'] <= g.max_div_yield
@@ -147,7 +177,7 @@ def screen_cigar_butt(pool, prev, date):
     return top.reset_index(drop=True)
 
 
-def manage_holdings(context, target):
+def manage_holdings(context, target, exposure):
     target_codes = set(target['code'].tolist())
     cd = get_current_data()
     for stock, pos in list(context.portfolio.positions.items()):
@@ -157,22 +187,22 @@ def manage_holdings(context, target):
         name = cur.name or ''
         if cur.is_st or 'ST' in name.upper() or '*' in name or '退' in name:
             order_target(stock, 0)
-            log.info('烟蒂股：退市/ST 卖出 %s' % stock)
+            log.info('烟蒂股v2：退市/ST 卖出 %s' % stock)
             continue
         avg_cost = pos.avg_cost
         last = cur.last_price
         if avg_cost > 0 and last > 0 and (last / avg_cost - 1) <= g.stop_loss:
             order_target(stock, 0)
-            log.info('烟蒂股：止损卖出 %s (%.1f%%)' % (stock, (last / avg_cost - 1) * 100))
+            log.info('烟蒂股v2：止损卖出 %s (%.1f%%)' % (stock, (last / avg_cost - 1) * 100))
             continue
         if stock not in target_codes:
             order_target(stock, 0)
-            log.info('烟蒂股：调出 %s' % stock)
+            log.info('烟蒂股v2：调出 %s' % stock)
 
     codes = target['code'].tolist()
     if not codes:
         return
-    weight = 1.0 / len(codes)  # 等权、满仓
+    weight = exposure / len(codes)   # 等权 × 暴露；其余留现金
     for stock in codes:
         cur = cd[stock]
         if cur.paused or cur.is_st:
@@ -180,11 +210,12 @@ def manage_holdings(context, target):
         order_target_value(stock, context.portfolio.total_value * weight)
 
 
-def record(context, target):
+def record(context, target, exposure):
     try:
         value = context.portfolio.total_value
         n = len(context.portfolio.positions)
-        log.info('烟蒂股：净值 %.2f | 持仓 %d | 候选 %d' % (value, n, len(target)))
+        log.info('烟蒂股v2：净值 %.2f | 持仓 %d | 候选 %d | 暴露 %.0f%%'
+                 % (value, n, len(target), exposure * 100))
         record(value=value)
         if target is not None and len(target) > 0:
             record(avg_div_yield=target['div_yield'].mean())

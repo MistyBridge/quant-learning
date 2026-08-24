@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-烟蒂股策略（小市值 + 高股息可持续型）—— 聚宽平台
+烟蒂股策略 v1 · 原版（小市值 + 高股息可持续型）—— 聚宽平台
 
 【策略思想】
     借鉴"格雷厄姆式烟蒂股代理"：买**市值最小**、**股息率高且分红可持续**的一篮子股票。
-    （这里"烟蒂股"按小市值 + 高股息的代理口径，而非严格 NCAV 净流动资产。）
+    （"烟蒂股"按小市值 + 高股息的代理口径，而非严格 NCAV 净流动资产。）
 
 【选股流程（每月重算）】
     全市场 A 股
@@ -13,17 +13,16 @@
       → 剔除股利支付率异常： payout_rate 不在 (0,1] 内（>1 分红超过利润 / ≤0 亏损或不含税）
       → 剔除市净率 ≤ 0（资不抵债的"有毒烟蒂"）
       → 按股息率（近一年分红/市值）降序取前 top_n 只 = 当期烟蒂股
-      → 等权建仓
+      → 等权建仓（满仓）
 
 【卖出逻辑】
     - 止损：相对成本 -20%
     - 调出：不再是当期 top_n 目标 / 不再满足股利支付率或市净率条件
     - 退市 / ST
 
-【注意】
-    - 财务/分红/估值一律用前一日数据（prev_date），避免未来函数。
-    - 本策略为量化学习/研究用途，不构成投资建议。
-    - 关键字段：分红用 finance.STK_XR_XD（a_registration_date 口径）；估值用 valuation.market_cap/pe_ratio/pb_ratio。
+【A/B】v1 原版(等权满仓) / v2 正向凯莉 / v3 逆向凯莉 —— 三者选股完全相同，只差仓位管理。
+
+【注意】财务/分红/估值一律用前一日数据（prev_date），避免未来函数。本策略为学习/研究用途，不构成投资建议。
 """
 
 from jqdata import *
@@ -31,9 +30,6 @@ import pandas as pd
 import datetime
 
 
-# ============================================================
-# 初始化
-# ============================================================
 def initialize(context):
     set_benchmark('000300.XSHG')
     set_option('use_real_price', True)
@@ -60,38 +56,32 @@ def initialize(context):
     run_monthly(rebalance, monthday=1, time='09:31')
 
 
-# ============================================================
-# 每月调仓入口
-# ============================================================
 def rebalance(context):
     date = context.current_dt.date()      # 仅用于股票池/上市时长判断
     prev = context.previous_date          # 所有财务/分红/估值数据统一用前一日
 
     try:
         universe = get_universe(context, prev, date)
-        log.info('烟蒂股：过滤后股票池 %d 只' % len(universe))
+        log.info('烟蒂股v1：过滤后股票池 %d 只' % len(universe))
         if not universe:
             return
 
         pool = get_small_cap_pool(universe, prev)
-        log.info('烟蒂股：小市值池 %d 只' % len(pool))
+        log.info('烟蒂股v1：小市值池 %d 只' % len(pool))
         if not pool:
             return
 
         target = screen_cigar_butt(pool, prev, date)
-        log.info('烟蒂股：当期烟蒂股候选 %d 只' % len(target))
+        log.info('烟蒂股v1：当期烟蒂股候选 %d 只' % len(target))
 
         sell_holdings(context, target, prev)
         buy_holdings(context, target)
         record(context, target)
 
     except Exception as e:
-        log.error('烟蒂股：调仓异常 %s: %s' % (type(e).__name__, e))
+        log.error('烟蒂股v1：调仓异常 %s: %s' % (type(e).__name__, e))
 
 
-# ============================================================
-# 1. 股票池基础过滤（ST/退市/科创北交/次新/停牌）
-# ============================================================
 def get_universe(context, prev, date):
     all_sec = get_all_securities(types=['stock'], date=date)
     if all_sec is None or len(all_sec) == 0:
@@ -119,9 +109,6 @@ def get_universe(context, prev, date):
     return kept
 
 
-# ============================================================
-# 2. 取市值最小的 pool_size 只（小市值池）
-# ============================================================
 def get_small_cap_pool(universe, prev):
     q = query(valuation.code).filter(
         valuation.code.in_(universe)
@@ -134,9 +121,6 @@ def get_small_cap_pool(universe, prev):
     return df['code'].tolist()
 
 
-# ============================================================
-# 3. 烟蒂股筛选：股息率 + 股利支付率 + 市净率
-# ============================================================
 def screen_cigar_butt(pool, prev, date):
     if not pool:
         return pd.DataFrame()
@@ -187,7 +171,7 @@ def screen_cigar_butt(pool, prev, date):
     strict = df[has_profit_pb & has_sane_yield & (df['payout_rate'] <= g.payout_max)]
     if len(strict) < g.min_hold:
         fuzzy = df[has_profit_pb & has_sane_yield & (df['payout_rate'] <= g.payout_relax_max)]
-        log.info('烟蒂股：严格候选 %d < %d，放宽支付率到 <=%.2f 后 %d'
+        log.info('烟蒂股v1：严格候选 %d < %d，放宽支付率到 <=%.2f 后 %d'
                  % (len(strict), g.min_hold, g.payout_relax_max, len(fuzzy)))
         sel = fuzzy
     else:
@@ -198,9 +182,6 @@ def screen_cigar_butt(pool, prev, date):
     return top.reset_index(drop=True)
 
 
-# ============================================================
-# 4. 卖出逻辑
-# ============================================================
 def sell_holdings(context, target, prev):
     target_codes = set(target['code'].tolist()) if target is not None and len(target) else set()
     cd = get_current_data()
@@ -211,46 +192,39 @@ def sell_holdings(context, target, prev):
         name = cur.name or ''
         if cur.is_st or 'ST' in name.upper() or '*' in name or '退' in name:
             order_target(stock, 0)
-            log.info('烟蒂股：退市/ST 卖出 %s' % stock)
+            log.info('烟蒂股v1：退市/ST 卖出 %s' % stock)
             continue
         avg_cost = pos.avg_cost
         last = cur.last_price
         if avg_cost > 0 and last > 0 and (last / avg_cost - 1) <= g.stop_loss:
             order_target(stock, 0)
-            log.info('烟蒂股：止损卖出 %s (%.1f%%)' % (stock, (last / avg_cost - 1) * 100))
+            log.info('烟蒂股v1：止损卖出 %s (%.1f%%)' % (stock, (last / avg_cost - 1) * 100))
             continue
         # 不再是当期烟蒂目标 → 调出
         if stock not in target_codes:
             order_target(stock, 0)
-            log.info('烟蒂股：调出 %s' % stock)
+            log.info('烟蒂股v1：调出 %s' % stock)
 
 
-# ============================================================
-# 5. 买入 / 等权再平衡
-# ============================================================
 def buy_holdings(context, target):
     if target is None or len(target) == 0:
         return
     codes = target['code'].tolist()
     cd = get_current_data()
-    weight = 1.0 / len(codes)
+    weight = 1.0 / len(codes)   # 等权、满仓
     for stock in codes:
         cur = cd[stock]
         if cur.paused or cur.is_st:
             continue
-        # 已在目标且已有持仓 → 调整为等权；未持有 → 买入
         order_target_value(stock, context.portfolio.total_value * weight)
 
 
-# ============================================================
-# 记录组合状态
-# ============================================================
 def record(context, target):
     try:
         value = context.portfolio.total_value
         cash = context.portfolio.available_cash
         n = len(context.portfolio.positions)
-        log.info('烟蒂股：净值 %.2f | 现金 %.2f | 持仓 %d | 候选 %d'
+        log.info('烟蒂股v1：净值 %.2f | 现金 %.2f | 持仓 %d | 候选 %d'
                  % (value, cash, n, len(target) if target is not None else 0))
         record(value=value)
         if target is not None and len(target) > 0:
