@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "mode": "BYOS_LOCAL_INDEX",
+  "user_attestation": "Sample shape only; replace the path and hash with an explicitly supplied local source.",
+  "entries": [
+    {
+      "source_id": "DH-PDF-1997",
+      "path": "REPLACE_WITH_EXPLICIT_LOCAL_PATH",
+      "filename": "user-owned-edition.pdf",
+      "format": ".pdf",
+      "size_bytes": 0,
+      "sha256": "REPLACE_WITH_SHA256",
+      "manifest_known": true,
+      "title": "Dynamic Hedging: Managing Vanilla and Exotic Options",
+      "edition_match": "UNVERIFIED",
+      "content_uploaded": false
+    }
+  ]
+}

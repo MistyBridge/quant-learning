@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "mode": "BYOS_LOCAL_INDEX",
+  "user_attestation": "Intentionally invalid fixture.",
+  "entries": [
+    {
+      "source_id": "UNKNOWN-SOURCE",
+      "path": "MISSING_LOCAL_FILE",
+      "filename": "unknown.bin",
+      "format": ".bin",
+      "size_bytes": 1,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "manifest_known": false,
+      "title": null,
+      "edition_match": "UNVERIFIED",
+      "content_uploaded": false
+    }
+  ]
+}

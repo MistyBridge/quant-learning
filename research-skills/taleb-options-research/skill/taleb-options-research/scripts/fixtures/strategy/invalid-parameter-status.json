@@ -1,0 +1,292 @@
+{
+  "schema_version": "0.1",
+  "artifact_status": "planning_draft",
+  "execution_authority": false,
+  "parameter_status_enum": [
+    "CONTRACT",
+    "LITERATURE",
+    "CALIBRATE",
+    "USER_POLICY",
+    "STRESS",
+    "MISSING_FROM_SOURCE",
+    "UNKNOWN"
+  ],
+  "decision_state_enum": [
+    "RESEARCH",
+    "SPEC_VALID",
+    "DATA_READY",
+    "SIM_PASS",
+    "HOLDOUT_PASS",
+    "PAPER_WATCH",
+    "REJECT",
+    "NO_TRADE"
+  ],
+  "passport_profiles": {
+    "COMMON_OPTION_RESEARCH": [
+      "ContractTaxonomy",
+      "StrategyIdentity",
+      "CurvatureState",
+      "PayoffChoiceSpec",
+      "StochasticProcessPassport",
+      "MeasurePassport",
+      "NumeraireContractSpec",
+      "ReplicationRealityGap",
+      "ModelAssumptionRouter",
+      "GreekCancellationAudit",
+      "TailEnvironmentSpec",
+      "SimulationEvidenceSpec",
+      "SelectionProvenance",
+      "RepeatedExposureSpec",
+      "CompetingRuinClockSpec",
+      "StrategyFunctionSustainabilitySpec",
+      "RiskCommunicationCard"
+    ],
+    "SAME_EXPIRY_STATIC": [
+      "ShapeArbitrageGate",
+      "ExerciseLifecycleSpec",
+      "TerminalPayoffGrid",
+      "SpotTimeSurfaceRiskTensor"
+    ],
+    "CROSS_EXPIRY_PATH": [
+      "ForwardFutureBasisSpec",
+      "ObservationFrequencySpec",
+      "ExpiryBucketRiskTensor",
+      "ModifiedVegaModelCard",
+      "ResidualLegLifecycle"
+    ],
+    "DYNAMIC_ROLL_STOPPING_TIME": [
+      "StoppingTimeContractSpec",
+      "MonitoringScheduleSpec",
+      "TriggerEvidenceSpec",
+      "GapRiskReportSpec",
+      "PathRollReplicationSpec",
+      "CensoringAndPatienceSpec",
+      "RollCashLedger"
+    ],
+    "COMPOUND_PRICING": [
+      "PricingKernelPassport",
+      "ClosedFormAudit",
+      "ParameterConvexityReport",
+      "ModelComplexityBudget",
+      "NestedClaimLifecycle"
+    ],
+    "SIMPLE_BASELINE": [
+      "TerminalPayoffGrid",
+      "SpotTimeSurfaceRiskTensor",
+      "ExerciseLifecycleSpec"
+    ],
+    "SHORT_TAIL_COUNTEREXAMPLE": [
+      "MarginSpiralStress",
+      "JumpGapStress",
+      "RepeatedRuinReport"
+    ],
+    "NO_TRADE_GOVERNANCE": [
+      "OpportunityCostLedger",
+      "AvoidedRiskLedger",
+      "RiskCommunicationCard"
+    ]
+  },
+  "specs": [
+    {
+      "spec_id": "F1_SAME_EXPIRY_WINGS",
+      "class": "candidate",
+      "family": "同到期双翼反向比例结构",
+      "research_status": "source_supported_candidate",
+      "thesis": "在相同到期日买入两侧翼、卖出较少中央跨式；尾部斜率可以向上，但肩部亏损、路径风险和真实成本必须独立通过。",
+      "market_scope": [
+        "US_LISTED_EQUITY_OPTIONS_RESEARCH_ONLY",
+        "CRYPTO_LISTED_OPTIONS_RESEARCH_ONLY",
+        "VENUE_ELIGIBILITY_UNVERIFIED_UNTIL_DATA_SURVEY"
+      ],
+      "evidence_refs": [
+        "XZ-D-03",
+        "DH-B-WINGS-01",
+        "DH-B-PAYOFF-TOPOGRAPHY-01",
+        "AF-B-PRICE-01"
+      ],
+      "formula_refs": [
+        "DH-A-WING-PAYOFF-01",
+        "DH-A-WING-MINIMUM-01",
+        "METHOD-A-LIQUIDATION-WEALTH-01",
+        "METHOD-A-SPOT-CONVEXITY-01"
+      ],
+      "premium_cashflow_model": "Entry credit or debit is computed from atomic-combo or timestamped leg fills; financing is carried to each valuation date, and shoulder loss, fees, assignment, hedge and liquidation cashflows remain separate.",
+      "greek_surface_risk": [
+        "leg-level gross and net Delta, Gamma, Vega, Theta and higher-order cancellation",
+        "spot × time × skew × term-surface full revaluation",
+        "jump, pin, early-exercise, assignment and margin residual"
+      ],
+      "sizing_contract": "Choose integer contracts only after matching premium, tail-loss and survival budgets to baselines; enforce q_p>q_s and q_c>q_s for the declared two-upward-tail identity; no source quantity is a default.",
+      "data_requirements": [
+        "point-in-time option chain with contract identity and corporate-action history",
+        "side-and-size-aware bid, ask, depth, combo and fill observations",
+        "underlying, rates, dividends, borrow, settlement and exercise data",
+        "historical volatility surface and account-specific margin snapshots"
+      ],
+      "canonical_legs": [
+        {
+          "leg_id": "long_put_wing",
+          "instrument": "vanilla_put",
+          "side": "buy",
+          "quantity_symbol": "q_p",
+          "strike_rule": "K_p < K_a",
+          "expiry_rule": "T_shared",
+          "role": "left_tail_convexity",
+          "tradability": "listed_required"
+        },
+        {
+          "leg_id": "short_atm_put",
+          "instrument": "vanilla_put",
+          "side": "sell",
+          "quantity_symbol": "q_s",
+          "strike_rule": "K_a",
+          "expiry_rule": "T_shared",
+          "role": "financing_and_left_shoulder",
+          "tradability": "listed_required"
+        },
+        {
+          "leg_id": "short_atm_call",
+          "instrument": "vanilla_call",
+          "side": "sell",
+          "quantity_symbol": "q_s",
+          "strike_rule": "K_a",
+          "expiry_rule": "T_shared",
+          "role": "financing_and_right_shoulder",
+          "tradability": "listed_required"
+        },
+        {
+          "leg_id": "long_call_wing",
+          "instrument": "vanilla_call",
+          "side": "buy",
+          "quantity_symbol": "q_c",
+          "strike_rule": "K_c > K_a",
+          "expiry_rule": "T_shared",
+          "role": "right_tail_convexity",
+          "tradability": "listed_required"
+        }
+      ],
+      "parameter_registry": [
+        {
+          "name": "source_structure",
+          "status": "GUESSED_DEFAULT",
+          "source_value": "long OTM put and call; short fewer ATM straddles",
+          "source_ref": "DH-B-WINGS-01",
+          "prohibition": "不得把图中视觉比例当作生产默认。"
+        },
+        {
+          "name": "strike_expiry_quantity_grid",
+          "status": "CALIBRATE",
+          "source_value": null,
+          "source_ref": null,
+          "prohibition": "只允许由 point-in-time 训练数据产生并在冻结 holdout 检验。"
+        },
+        {
+          "name": "tail_slope_constraint",
+          "status": "CONTRACT",
+          "source_value": "q_p > q_s and q_c > q_s for two upward tail slopes",
+          "source_ref": "DH-A-WING-PAYOFF-01",
+          "prohibition": "不满足时不得标注为双尾向上。"
+        },
+        {
+          "name": "premium_margin_survival_budget",
+          "status": "USER_POLICY",
+          "source_value": null,
+          "source_ref": null,
+          "prohibition": "研究程序不得替用户发明风险预算。"
+        }
+      ],
+      "contract_and_settlement": [
+        "underlying, multiplier, currency, exercise style and settlement must match all four legs",
+        "early exercise, dividend, borrow and pin branches are explicit",
+        "entry and liquidation use side-and-quantity-aware executable quotes"
+      ],
+      "path_states": [
+        "ENTRY",
+        "OPEN",
+        "EARLY_EXERCISE_OR_ASSIGNMENT",
+        "MARGIN_STRESS",
+        "EXIT_OR_EXPIRY"
+      ],
+      "entry_gates": [
+        "all four canonical contracts resolve without ambiguity",
+        "q_p > q_s and q_c > q_s",
+        "both shoulder minima and account liquidation floor pass after costs",
+        "combo depth or legging path is observable"
+      ],
+      "rebalance_transitions": [
+        "static by default",
+        "any discretionary hedge creates a separately versioned dynamic policy"
+      ],
+      "exit_gates": [
+        "pre-registered time exit or expiry",
+        "risk-budget or margin de-risk event",
+        "data, contract or model invalidation"
+      ],
+      "required_profile_ids": [
+        "COMMON_OPTION_RESEARCH",
+        "SAME_EXPIRY_STATIC"
+      ],
+      "risk_limits": [
+        "shoulder loss floor",
+        "premium and carry budget",
+        "pathwise per-account liquidation wealth floor",
+        "maximum executable quantity and legging exposure"
+      ],
+      "evaluation_contract": {
+        "terminal_payoff": "Exact four-region payoff and shoulder minima after realized entry financing and costs.",
+        "path_revaluation": "Full spot × time × volatility-surface revaluation with early-exercise and margin states.",
+        "costs": "Executable entry, hedge if any, assignment, close and liquidation costs.",
+        "margin": "Account-specific peak initial, maintenance and stressed liquidation margin.",
+        "stress": [
+          "left and right jumps",
+          "both shoulder states",
+          "surface twist and skew repricing",
+          "depth collapse and partial fill"
+        ],
+        "holdout": "Freeze selection before chronological and regime holdout; report every trial.",
+        "metrics": [
+          "cost-adjusted tail convexity",
+          "minimum liquidation wealth",
+          "shoulder loss",
+          "edge-before-stop",
+          "incremental value versus B3 and no-trade"
+        ],
+        "required_tests": [
+          "TEST-PAYOFF-IDENTITY-GRID",
+          "TEST-SHOULDER-LOSS",
+          "TEST-PATH-SURVIVAL",
+          "TEST-ACCOUNT-MARGIN"
+        ]
+      },
+      "benchmark_ids": [
+        "F5_NO_TRADE",
+        "B1_LONG_PUT",
+        "B2_LONG_CALL",
+        "B3_LONG_TWO_TAILS",
+        "B4_PROTECTIVE_PUT",
+        "B5_SHORT_STRADDLE"
+      ],
+      "hard_rejects": [
+        "net credit is used as proof of no loss",
+        "canonical legs or settlement mismatch",
+        "tail slope constraint fails",
+        "executable cost, depth, margin or survival path is missing",
+        "no stable increment over B3 under the same budget"
+      ],
+      "known_unknowns": [
+        "whether this is Xu Zhe's actual undisclosed combination",
+        "current optimal strikes, expiries and quantities",
+        "venue-specific margin and early-exercise behavior"
+      ],
+      "decision_states": [
+        "RESEARCH",
+        "SPEC_VALID",
+        "DATA_READY",
+        "SIM_PASS",
+        "HOLDOUT_PASS",
+        "PAPER_WATCH",
+        "REJECT"
+      ]
+    }
+  ]
+}

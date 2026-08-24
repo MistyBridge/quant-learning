@@ -1,0 +1,189 @@
+{
+  "schema_version": "1.0",
+  "release_version": "1.1.0",
+  "generated_at": "2026-07-29",
+  "license": {
+    "code_and_schema": "Apache-2.0",
+    "original_documentation_and_release_summaries": "CC-BY-4.0",
+    "third_party_sources": "EXCLUDED_NOT_BUNDLED_NOT_RELICENSED"
+  },
+  "sources": [
+    {
+      "source_id": "XZ-E43",
+      "kind": "podcast_interview",
+      "title": "E43《没有更好的生活》",
+      "author_or_speaker": "许哲等",
+      "edition": "timestamped episode",
+      "publisher": null,
+      "isbn": null,
+      "locator_convention": "HH:MM:SS time range",
+      "local_formats": [
+        ".m4a",
+        ".mp3",
+        ".wav",
+        ".md",
+        ".txt"
+      ],
+      "acquisition_note": "Use a lawfully obtained episode or transcript; verify audio-sensitive wording against the recording."
+    },
+    {
+      "source_id": "DH-PDF-1997",
+      "kind": "book",
+      "title": "Dynamic Hedging: Managing Vanilla and Exotic Options",
+      "author_or_speaker": "Nassim Nicholas Taleb",
+      "edition": "1997",
+      "publisher": "John Wiley & Sons",
+      "isbn": "978-0-471-15280-4",
+      "locator_convention": "physical page and printed page when available",
+      "local_formats": [
+        ".pdf",
+        ".djvu",
+        ".epub"
+      ],
+      "acquisition_note": "Use a lawfully obtained edition; page offsets may differ."
+    },
+    {
+      "source_id": "TALEB-ANTIFRAGILE",
+      "kind": "book",
+      "title": "Antifragile: Things That Gain from Disorder",
+      "author_or_speaker": "Nassim Nicholas Taleb",
+      "edition": "edition varies",
+      "publisher": null,
+      "isbn": null,
+      "locator_convention": "chapter and printed-page anchor",
+      "local_formats": [
+        ".pdf",
+        ".epub"
+      ],
+      "acquisition_note": "Use a lawfully obtained edition and record edition-specific page mapping locally."
+    },
+    {
+      "source_id": "TALEB-BLACK-SWAN",
+      "kind": "book",
+      "title": "The Black Swan",
+      "author_or_speaker": "Nassim Nicholas Taleb",
+      "edition": "edition varies",
+      "publisher": null,
+      "isbn": null,
+      "locator_convention": "chapter, physical page, and printed page when available",
+      "local_formats": [
+        ".pdf",
+        ".epub"
+      ],
+      "acquisition_note": "Use a lawfully obtained edition and record edition-specific page mapping locally."
+    },
+    {
+      "source_id": "TALEB-FOOLED",
+      "kind": "book",
+      "title": "Fooled by Randomness",
+      "author_or_speaker": "Nassim Nicholas Taleb",
+      "edition": "edition varies",
+      "publisher": null,
+      "isbn": null,
+      "locator_convention": "chapter, physical page, and printed page when available",
+      "local_formats": [
+        ".pdf",
+        ".epub"
+      ],
+      "acquisition_note": "Use a lawfully obtained edition and record edition-specific page mapping locally."
+    },
+    {
+      "source_id": "TALEB-SKIN",
+      "kind": "book",
+      "title": "Skin in the Game",
+      "author_or_speaker": "Nassim Nicholas Taleb",
+      "edition": "edition varies",
+      "publisher": null,
+      "isbn": null,
+      "locator_convention": "chapter and printed-page anchor",
+      "local_formats": [
+        ".pdf",
+        ".epub"
+      ],
+      "acquisition_note": "Use a lawfully obtained edition and record edition-specific page mapping locally."
+    },
+    {
+      "source_id": "SCOFT-3E-2025",
+      "kind": "book",
+      "title": "Statistical Consequences of Fat Tails: Real World Preasymptotics, Epistemology, and Applications — Papers and Commentary",
+      "author_or_speaker": "Nassim Nicholas Taleb",
+      "edition": "Third Edition, 2025",
+      "publisher": "STEM Academic Press",
+      "isbn": "979-8-218-24803-1",
+      "locator_convention": "physical PDF page, chapter, equation, and figure when available",
+      "local_formats": [
+        ".pdf",
+        ".epub",
+        ".md"
+      ],
+      "acquisition_note": "Use a lawfully obtained Third Edition. Keep the original file, OCR, page images, hashes, and locator-review artifacts outside the public Skill."
+    },
+    {
+      "source_id": "CROSS-SOURCE",
+      "kind": "project_synthesis",
+      "title": "Cross-source option-method derivations",
+      "author_or_speaker": "Taleb Options Research contributors",
+      "edition": "1.1.0",
+      "publisher": null,
+      "isbn": null,
+      "locator_convention": "stable formula or rule ID",
+      "local_formats": [
+        ".md",
+        ".json",
+        ".jsonl"
+      ],
+      "acquisition_note": "Bundled project-authored synthesis; no third-party source file is required."
+    }
+  ],
+  "release_artifacts": [
+    {
+      "kind": "claims",
+      "path": "claim-registry.release.jsonl",
+      "records": 422,
+      "sha256": "489fa481698bf9e151afedd8cb96a79c5fb1661cdeff0d4cc98cd8fbc7e8032b"
+    },
+    {
+      "kind": "formulas",
+      "path": "formula-registry.release.jsonl",
+      "records": 233,
+      "sha256": "e87958eab47ff47e1d5aba5d654e8dace6b70d4696a7ae1d3fa2bb2b78b2e45a"
+    },
+    {
+      "kind": "visuals",
+      "path": "visual-registry.release.jsonl",
+      "records": 245,
+      "sha256": "5bbdd31393815f6604a98d645be36538724680b3c6c824b98dd2b5151e6334ee"
+    },
+    {
+      "kind": "rules",
+      "path": "rule-registry.release.jsonl",
+      "records": 183,
+      "sha256": "8dd52167988dbbfb75bab128e97273671bfd6b0881c7731d37c8a69e7cba555c"
+    },
+    {
+      "kind": "document",
+      "path": "source-inventory.release.md",
+      "records": null,
+      "sha256": "96253f40b22e5eb2b4b80a91d0185a2b60f47e7000669b13e255e3a486aab84f"
+    },
+    {
+      "kind": "document",
+      "path": "source-coverage.release.md",
+      "records": null,
+      "sha256": "7ed3736b4850f87c8c4855afcf05bd4c3bb9147f515462ae2ec56ccfac45d251"
+    },
+    {
+      "kind": "document",
+      "path": "source-map.md",
+      "records": null,
+      "sha256": "4d98f8c0d65511584f14b7df1d039ba58037b16c8bdb56680fd69427fba0873c"
+    },
+    {
+      "kind": "document",
+      "path": "strategy-spec.schema.json",
+      "records": null,
+      "sha256": "cf147718a57209c9f19cf5b49ec8684018b3dfe903ee7e154ad25d674ef8cb17"
+    }
+  ],
+  "raw_source_hash_policy": "Local source hashes are user-specific BYOS metadata and are not canonical release hashes."
+}

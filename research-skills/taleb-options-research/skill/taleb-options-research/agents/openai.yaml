@@ -1,0 +1,4 @@
+interface:
+  display_name: "塔勒布证据化期权研究"
+  short_description: "以生存优先、净凸性和证据链设计、比较与审计期权研究策略"
+  default_prompt: "Use $taleb-options-research to turn this options idea into an evidence-backed, falsifiable StrategySpec with survival, cost, benchmark, and no-trade gates."

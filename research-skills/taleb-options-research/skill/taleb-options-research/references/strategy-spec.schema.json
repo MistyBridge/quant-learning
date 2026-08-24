@@ -1,0 +1,561 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:taleb-options-research:strategy-spec:1.1",
+  "title": "Taleb options research StrategySpec",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "artifact_status",
+    "execution_authority",
+    "parameter_status_enum",
+    "decision_state_enum",
+    "passport_profiles",
+    "specs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "artifact_status": {
+      "const": "planning_draft"
+    },
+    "execution_authority": {
+      "const": false
+    },
+    "parameter_status_enum": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "CONTRACT",
+          "LITERATURE",
+          "CALIBRATE",
+          "USER_POLICY",
+          "STRESS",
+          "MISSING_FROM_SOURCE",
+          "UNKNOWN"
+        ]
+      }
+    },
+    "decision_state_enum": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "RESEARCH",
+          "SPEC_VALID",
+          "DATA_READY",
+          "SIM_PASS",
+          "HOLDOUT_PASS",
+          "PAPER_WATCH",
+          "REJECT",
+          "NO_TRADE"
+        ]
+      }
+    },
+    "passport_profiles": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "specs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/strategySpec"
+      }
+    }
+  },
+  "$defs": {
+    "strategySpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spec_id",
+        "class",
+        "family",
+        "research_status",
+        "thesis",
+        "market_scope",
+        "evidence_refs",
+        "formula_refs",
+        "premium_cashflow_model",
+        "greek_surface_risk",
+        "sizing_contract",
+        "data_requirements",
+        "canonical_legs",
+        "parameter_registry",
+        "contract_and_settlement",
+        "path_states",
+        "entry_gates",
+        "rebalance_transitions",
+        "exit_gates",
+        "required_profile_ids",
+        "risk_limits",
+        "evaluation_contract",
+        "benchmark_ids",
+        "hard_rejects",
+        "known_unknowns",
+        "decision_states"
+      ],
+      "properties": {
+        "spec_id": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]+$"
+        },
+        "class": {
+          "enum": [
+            "candidate",
+            "baseline",
+            "no_trade"
+          ]
+        },
+        "family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "research_status": {
+          "enum": [
+            "source_supported_candidate",
+            "comparison_baseline",
+            "mandatory_decision_baseline"
+          ]
+        },
+        "thesis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "market_scope": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evidence_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "formula_refs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "premium_cashflow_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "greek_surface_risk": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "sizing_contract": {
+          "type": "string",
+          "minLength": 1
+        },
+        "data_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "canonical_legs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/leg"
+          }
+        },
+        "parameter_registry": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          }
+        },
+        "contract_and_settlement": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "path_states": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "entry_gates": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rebalance_transitions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "exit_gates": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_profile_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]+$"
+          }
+        },
+        "risk_limits": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "evaluation_contract": {
+          "$ref": "#/$defs/evaluation"
+        },
+        "benchmark_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9_]+$"
+          }
+        },
+        "hard_rejects": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "known_unknowns": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "decision_states": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "RESEARCH",
+              "SPEC_VALID",
+              "DATA_READY",
+              "SIM_PASS",
+              "HOLDOUT_PASS",
+              "PAPER_WATCH",
+              "REJECT",
+              "NO_TRADE"
+            ]
+          }
+        },
+        "fat_tail_robustness": {
+          "$ref": "#/$defs/fatTailRobustness"
+        }
+      }
+    },
+    "leg": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "leg_id",
+        "instrument",
+        "side",
+        "quantity_symbol",
+        "strike_rule",
+        "expiry_rule",
+        "role",
+        "tradability"
+      ],
+      "properties": {
+        "leg_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "instrument": {
+          "type": "string",
+          "minLength": 1
+        },
+        "side": {
+          "enum": [
+            "buy",
+            "sell",
+            "hold_cash",
+            "hold_underlying",
+            "branch_unresolved"
+          ]
+        },
+        "quantity_symbol": {
+          "type": "string",
+          "minLength": 1
+        },
+        "strike_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expiry_rule": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tradability": {
+          "enum": [
+            "listed_required",
+            "otc_or_listed_required",
+            "underlying_required",
+            "cash",
+            "research_synthetic_only",
+            "unknown_until_venue_survey"
+          ]
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "status",
+        "source_value",
+        "source_ref",
+        "prohibition"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "CONTRACT",
+            "LITERATURE",
+            "CALIBRATE",
+            "USER_POLICY",
+            "STRESS",
+            "MISSING_FROM_SOURCE",
+            "UNKNOWN"
+          ]
+        },
+        "source_value": {},
+        "source_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prohibition": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "terminal_payoff",
+        "path_revaluation",
+        "costs",
+        "margin",
+        "stress",
+        "holdout",
+        "metrics",
+        "required_tests"
+      ],
+      "properties": {
+        "terminal_payoff": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path_revaluation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "costs": {
+          "type": "string",
+          "minLength": 1
+        },
+        "margin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "stress": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "holdout": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_tests": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "fatTailRobustness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "preasymptotic_tests",
+        "moment_requirements",
+        "extreme_scenarios",
+        "parameter_uncertainty",
+        "probability_measure_labels",
+        "joint_tail_tests",
+        "hedge_error_tests",
+        "selection_controls",
+        "tail_constraint"
+      ],
+      "properties": {
+        "preasymptotic_tests": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "moment_requirements": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "extreme_scenarios": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "parameter_uncertainty": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "probability_measure_labels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "joint_tail_tests": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "hedge_error_tests": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "selection_controls": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "tail_constraint": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenv
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Project outputs
+outputs/
+
+# Personal strategy code (do not commit)
+my-strategies/
+*.local.py
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 临时 commit message 文件（用 git commit -F 时的中转）
+.commit_msg.tmp
+*.commit_msg.tmp

@@ -1,0 +1,23 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.env
+
+# ===== Node =====
+node_modules/
+
+# ===== Obsidian 本地配置 =====
+.obsidian/
+
+# ===== IDE / OS =====
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# ===== Milvus 运行时数据（体积大，生成物，不入库）=====
+infra/milvus/volumes/
