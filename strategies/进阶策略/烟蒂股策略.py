@@ -1,30 +1,30 @@
 # -*- coding: utf-8 -*-
 """
-烟蒂股策略 v3 —— 小市值 + 高股息可持续 + 分级凯莉仓位（温和版）+ 动态平衡 + 分散投资
+烟蒂股策略 v4 —— 小市值 + 高股息可持续 + 逆向加减仓（越跌越加仓 / 涨超低点减仓，最低 50% 仓）
 
-【与 v1 / v2 的差异】
-    1) 加大分散：top_n 20，候选池 pool_size 1500，降低个体/小市值集中风险（保留 v2 的收益）。
-    2) 分级凯莉仓位分配：在当期烟蒂股内，按"股息率高、市净率低"做**有上限的 Kelly 倾斜权重**
-       （高确定性给更高权重），单票设置上限 max_pos_weight，杜绝过度集中（分级 = 分层仓位）。
-    3) 动态平衡（分级凯莉总体仓位 · 温和版）：用**组合近 kelly_window 个交易日收益的年化均值/波动**算 Kelly，
-       取"分数凯莉"= kelly_mult × max(0, Kelly)，映射到**权益暴露 exposure**（介于 min/max）。
-       v3 相比 v2：kelly_mult 上调到 0.5、暴露下限抬到 0.65、回看窗口缩短到 60 天，
-       回撤触发阈值放宽到 -30% —— 目标是**既不长期趴过多现金、又能在回撤后较快恢复仓位**，
-       避免 v2"降回撤但过度拖累收益"的副作用。
-    4) 最大回撤保护：组合自历史高点回撤超过 max_dd_deRisk 时，强制降到 min_exposure。
+【仓位管理（本版核心改动）】
+    以"组合最近低点"为基准做**逆向/均值回归式加减仓**：
+      - 越跌越加仓：组合价格回落、越接近最近低点（或创新低）-> 仓位往上升，最多 100%；
+      - 涨超低点减仓：现价高于最近低点 X% 时，**按比例减仓**；涨超过 reduce_trigger（默认 20%）-> 减到最低仓；
+      - 最低仓位：任何情况下不低于 min_position（默认 50%）。
+    仓位映射：exposure = max_position - (max_position - min_position)/reduce_trigger × max(0, 现价/低点 - 1)
+      即 低点处=100%，涨超 20% 处=50% 最低仓；之间线性递减。
 
-【选股口径】（与 v1 相同）
+【选股口径】（与 v1/v2/v3 相同）
     全市场 -> 剔除 ST/*ST/退市、科创板(688)、北交所(4/8/920)、次新(<365天)、停牌
     -> 取市值最小 pool_size 只 -> 近一年分红/市值 -> 剔除支付率异常、市净率<=0
     -> 股息率降序取 top_n。
 
-【使用】复制到聚宽在线编辑器回测。可调参数见 initialize（g.*）。
-【注意】本策略为量化学习/研究用途，不构成投资建议。
+【其余】
+    - 候选内仍按"股息率高、市净率低"做**有上限的倾斜权重**（确定性高的多给一点，单票封顶）。
+    - 每个月度调仓一次；所有财务/分红/估值用 previous_date 避免未来函数。
+
+【注意】"越跌越加仓"会在下跌中放大暴露，属于逆向抄底风格，可能放大回撤；请结合自身风险偏好使用。
+    本策略为量化学习/研究用途，不构成投资建议。
 """
 
 from jqdata import *
 import pandas as pd
-import numpy as np
 import datetime
 import collections
 
@@ -55,24 +55,22 @@ def initialize(context):
 
     # ---------- 交易 / 风控 ----------
     g.stop_loss = -0.18       # 相对成本止损
-    g.rf = 0.03               # 无风险利率（用于 Kelly）
 
-    # ---------- 分级凯莉 · 动态仓位（v3：温和 + 更快恢复）----------
-    g.kelly_mult = 0.50       # 分数凯莉：取 1/2 凯莉（比 v2 的 1/4 更温和，不过度砍仓）
-    g.kelly_window = 60       # 回看交易日个数（缩短，回撤后更快恢复仓位）
-    g.min_exposure = 0.65     # 权益暴露下限（不再长期趴 40% 现金）
-    g.max_exposure = 1.00     # 权益暴露上限
-    g.default_exposure = 0.85 # 数据不足时的初始仓位
-    g.max_dd_deRisk = -0.30   # 回撤超过 30% 才强制降仓（放宽触发阈值）
+    # ---------- 逆向加减仓：越跌越加仓 / 涨超低点减仓 ----------
+    g.min_position = 0.50     # 最低仓位（始终 >= 50%）
+    g.max_position = 1.00     # 最高仓位
+    g.default_position = 1.00 # 数据不足时的初始仓位
+    g.trough_window = 120     # "最近低点"回看交易日数
+    g.reduce_trigger = 0.20   # 现价高于最近低点 20% 时，减至最低仓（0~20% 之间按比例递减）
 
-    # ---------- 分级凯莉 · 单票倾斜权重 ----------
+    # ---------- 单票倾斜权重（确定性高的给多一点，但有上限）----------
     g.max_pos_weight = 0.10   # 单票最大权重
     g.tilt_min = 0.5          # 倾斜下限（相对等权）
     g.tilt_max = 2.0          # 倾斜上限（相对等权）
 
     # 状态
-    g.recent_pv = collections.deque(maxlen=g.kelly_window + 5)  # 近端组合净值
-    g.peak_value = 0.0                                         # 历史高点
+    g.recent_pv = collections.deque(maxlen=g.trough_window + 10)  # 近端组合净值
+    g.peak_value = 0.0                                             # 历史高点（仅记录用）
 
     run_daily(track_value, time='14:55')
     run_monthly(rebalance, monthday=1, time='09:31')
@@ -89,20 +87,24 @@ def track_value(context):
 
 
 # ============================================================
-# 动态分级凯莉：计算权益暴露仓
+# 逆向加减仓：根据"最近低点"计算权益暴露仓
+#   越跌越加仓(接近/跌破最近低点 -> 最高仓)；涨超低点 reduce_trigger -> 最低仓
 # ============================================================
-def kelly_exposure(context):
+def trough_exposure(context):
     pv = list(g.recent_pv)
-    if len(pv) < 60:                     # 数据不足，用默认仓位
-        return g.default_exposure
-    r = np.diff(pv) / np.asarray(pv[:-1], dtype=float)   # 日收益
-    mu_ann = r.mean() * 250
-    sd_ann = r.std() * np.sqrt(250)
-    if sd_ann < 1e-6:                    # 几乎无波动
-        return g.max_exposure
-    kelly = (mu_ann - g.rf) / (sd_ann ** 2)
-    frac = g.kelly_mult * max(0.0, kelly)
-    return float(min(g.max_exposure, max(g.min_exposure, frac)))
+    if len(pv) < 30:                      # 数据不足，用默认仓位
+        return g.default_position
+    low = min(pv)
+    if low <= 0:
+        return g.max_position
+    cur = context.portfolio.total_value
+    rebound = max(0.0, cur / low - 1.0)   # 现价相对最近低点的涨幅
+    # 线性：低点处=最高仓；涨超 reduce_trigger 处=最低仓
+    exp = g.max_position - ((g.max_position - g.min_position) / g.reduce_trigger) * rebound
+    exp = float(min(g.max_position, max(g.min_position, exp)))
+    log.info('烟蒂股：最近低点 %.2f | 现价 %.2f | 反弹 %.1f%% -> 仓位 %.0f%%'
+             % (low, cur, rebound * 100, exp * 100))
+    return exp
 
 
 # ============================================================
@@ -113,16 +115,10 @@ def rebalance(context):
     prev = context.previous_date
 
     try:
-        # 0) 动态仓位（分级凯莉 + 回撤保护）
-        exposure = kelly_exposure(context)
-        cur_dd = (context.portfolio.total_value / g.peak_value - 1) if g.peak_value > 0 else 0.0
-        if cur_dd < g.max_dd_deRisk:
-            exposure = g.min_exposure
-            log.info('烟蒂股：回撤 %.1f%% 触发保护 -> 降到 %.0f%% 仓'
-                     % (cur_dd * 100, g.min_exposure * 100))
-        log.info('烟蒂股：当前仓位暴露 %.0f%%' % (exposure * 100))
+        # 0) 逆向加减仓：计算当前仓位暴露（越跌越加仓 / 涨超低点减仓，最低 50%）
+        exposure = trough_exposure(context)
 
-        # 1) 选股（与 v1 相同）
+        # 1) 选股（与 v1/v2/v3 相同）
         universe = get_universe(context, prev, date)
         log.info('烟蒂股：过滤后股票池 %d 只' % len(universe))
         if not universe:
@@ -136,7 +132,7 @@ def rebalance(context):
         if target is None or len(target) == 0:
             return
 
-        # 2) 分级凯莉倾斜权重（有上限）
+        # 2) 倾斜权重（确定性高的多给一点，单票有上限；总和 = 当前仓位暴露）
         weights = compute_weights(target, exposure)
         log.info('烟蒂股：持有 %d 只，总仓位 %.0f%%' % (len(weights), sum(w for _, w in weights) * 100))
 
