@@ -7,12 +7,12 @@
          E = min( 1/2凯莉 × (年化收益-无风险)/波动² , vol_target / 现实波动 )  [再夹到 min/max]
          且 自高点回撤 > dd_guard 时强制降到 min_exposure。
     2) 凯莉倾斜权重——在当期烟蒂股内按 股息率/(PB+0.5) 打分,高确定性多给一点,单票封顶,总和=E。
-    3) 带内高频再平衡——每周调仓,但只对"偏离目标权重超过 rebalance_band"的仓位动手(否则不动),
-       以放大换手(卖高买低/落袋)又控制成本;换仓/止损/退市照常。
+    3) 带内再平衡——**每月**调仓(与 v1 同频),但只对"偏离目标权重超过 rebalance_band"的仓位动手(否则不动),
+       以控制换手与成本;换仓/止损/退市照常。
 
-【与 v1/v2/v3】选股口径一致;本版"换手更高、风险暴露受控",是"放大换手 + 尽可能减少风险暴露"的实验版。
+【与 v1/v2/v3】选股口径一致;本版"风险暴露受控(三重锁)+ 带内纪律再平衡",调仓节奏与 v1 一致(月度)。
 
-【注意】换手越高、交易成本越大;每周多次 get_fundamentals/finance.run_query 也会更慢。本策略为学习/研究用途，不构成投资建议。
+【注意】月度多次 get_fundamentals/finance.run_query 会较慢;换手越高交易成本越大。本策略为学习/研究用途，不构成投资建议。
 """
 
 from jqdata import *
@@ -69,7 +69,7 @@ def initialize(context):
     g.recent_pv = collections.deque(maxlen=g.kelly_window + 10)
 
     run_daily(track_value, time='14:55')
-    run_weekly(rebalance, weekday=1, time='09:31')
+    run_monthly(rebalance, monthday=1, time='09:31')
 
 
 def track_value(context):
@@ -110,7 +110,7 @@ def target_exposure(context):
 
 
 # ============================================================
-# 每月/每周调仓入口
+# 每月调仓入口
 # ============================================================
 def rebalance(context):
     date = context.current_dt.date()
